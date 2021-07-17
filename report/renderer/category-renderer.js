@@ -82,9 +82,8 @@ export class CategoryRenderer {
     descEl.appendChild(this.dom.convertMarkdownLinkSnippets(audit.result.description));
 
     for (const relevantMetric of audit.relevantMetrics || []) {
-      const adornEl = this.dom.createChildOf(descEl, 'span', 'lh-audit__adorn', {
-        title: `Relevant to ${relevantMetric.result.title}`,
-      });
+      const adornEl = this.dom.createChildOf(descEl, 'span', 'lh-audit__adorn');
+      adornEl.title = `Relevant to ${relevantMetric.result.title}`;
       adornEl.textContent = relevantMetric.acronym || relevantMetric.id;
     }
 

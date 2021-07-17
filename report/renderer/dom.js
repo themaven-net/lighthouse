@@ -36,22 +36,13 @@ export class DOM {
    * @template {string} T
    * @param {T} name
    * @param {string=} className
-   * @param {Object<string, (string|undefined)>=} attrs Attribute key/val pairs.
-   *     Note: if an attribute key has an undefined value, this method does not
-   *     set the attribute on the node.
    * @return {HTMLElementByTagName[T]}
    */
-  createElement(name, className, attrs = {}) {
+  createElement(name, className) {
     const element = this._document.createElement(name);
     if (className) {
       element.className = className;
     }
-    Object.keys(attrs).forEach(key => {
-      const value = attrs[key];
-      if (typeof value !== 'undefined') {
-        element.setAttribute(key, value);
-      }
-    });
     return element;
   }
 
@@ -59,22 +50,13 @@ export class DOM {
    * @param {string} namespaceURI
    * @param {string} name
    * @param {string=} className
-   * @param {Object<string, (string|undefined)>=} attrs Attribute key/val pairs.
-   *     Note: if an attribute key has an undefined value, this method does not
-   *     set the attribute on the node.
    * @return {Element}
    */
-  createElementNS(namespaceURI, name, className, attrs = {}) {
+  createElementNS(namespaceURI, name, className) {
     const element = this._document.createElementNS(namespaceURI, name);
     if (className) {
       element.className = className;
     }
-    Object.keys(attrs).forEach(key => {
-      const value = attrs[key];
-      if (typeof value !== 'undefined') {
-        element.setAttribute(key, value);
-      }
-    });
     return element;
   }
 
@@ -90,13 +72,10 @@ export class DOM {
    * @param {Element} parentElem
    * @param {T} elementName
    * @param {string=} className
-   * @param {Object<string, (string|undefined)>=} attrs Attribute key/val pairs.
-   *     Note: if an attribute key has an undefined value, this method does not
-   *     set the attribute on the node.
    * @return {HTMLElementByTagName[T]}
    */
-  createChildOf(parentElem, elementName, className, attrs) {
-    const element = this.createElement(elementName, className, attrs);
+  createChildOf(parentElem, elementName, className) {
+    const element = this.createElement(elementName, className);
     parentElem.appendChild(element);
     return element;
   }
