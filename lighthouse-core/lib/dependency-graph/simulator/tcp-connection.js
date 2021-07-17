@@ -145,11 +145,11 @@ class TcpConnection {
         // ClientHello/ServerHello assuming TLS False Start is enabled (https://istlsfastyet.com/#server-performance).
         (this._ssl ? twoWayLatency : 0);
     }
-
     let roundTrips = Math.ceil(handshakeAndRequest / twoWayLatency);
     let timeToFirstByte = handshakeAndRequest + this._serverLatency + oneWayLatency;
     if (this._warmed && this._h2) timeToFirstByte = 0;
-
+    console.log(new Date(), 'simulateDownloadUntil 1', { warmed: this._warmed, h2: this._h2, ssl: this._ssl, serverLatency: this._serverLatency, 
+                                                         oneWayLatency, twoWayLatency, dnsResolutionTime, handshakeAndRequest, roundTrips, timeToFirstByte });
     const timeElapsedForTTFB = Math.max(timeToFirstByte - timeAlreadyElapsed, 0);
     const maximumDownloadTimeToElapse = maximumTimeToElapse - timeElapsedForTTFB;
 
@@ -176,7 +176,9 @@ class TcpConnection {
     const timeElapsed = timeElapsedForTTFB + downloadTimeElapsed;
     const extraBytesDownloaded = this._h2 ? Math.max(totalBytesDownloaded - bytesToDownload, 0) : 0;
     const bytesDownloaded = Math.max(Math.min(totalBytesDownloaded, bytesToDownload), 0);
-
+    console.log(new Date(), 'simulateDownloadUntil 2', { timeElapsedForTTFB, maximumCongestionWindow, maximumCongestionWindow, congestionWindow,
+                                                         totalBytesDownloaded, bytesToDownload, extraBytesDownloaded, bytesDownloaded,
+                                                         bytesRemaining, timeElapsed });
     return {
       roundTrips,
       timeElapsed,

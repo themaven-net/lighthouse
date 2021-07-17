@@ -137,6 +137,7 @@ class Simulator {
    * @param {number} queuedTime
    */
   _markNodeAsReadyToStart(node, queuedTime) {
+    console.log(new Date(), 'marking node as ready to start', { node, queuedTime });
     const nodeStartPosition = Simulator._computeNodeStartPosition(node);
     const firstNodeIndexWithGreaterStartPosition = this._cachedNodeListByStartPosition
       .findIndex(candidate => Simulator._computeNodeStartPosition(candidate) > nodeStartPosition);
@@ -154,6 +155,7 @@ class Simulator {
    * @param {number} startTime
    */
   _markNodeAsInProgress(node, startTime) {
+    console.log(new Date(), 'marking node as in progress', { node, startTime });
     const indexOfNodeToStart = this._cachedNodeListByStartPosition.indexOf(node);
     this._cachedNodeListByStartPosition.splice(indexOfNodeToStart, 1);
 
@@ -168,6 +170,7 @@ class Simulator {
    * @param {number} endTime
    */
   _markNodeAsComplete(node, endTime) {
+    console.log(new Date(), 'marking node as complete', { node, endTime });
     this._nodes[NodeState.Complete].add(node);
     this._nodes[NodeState.InProgress].delete(node);
     this._numberInProgressByType.set(node.type, this._numberInProgress(node.type) - 1);
@@ -207,6 +210,7 @@ class Simulator {
    * @param {number} totalElapsedTime
    */
   _startNodeIfPossible(node, totalElapsedTime) {
+    console.log(new Date(), 'starting node if possible', { node, totalElapsedTime });
     if (node.type === BaseNode.TYPES.CPU) {
       // Start a CPU task if there's no other CPU task in process
       if (this._numberInProgress(node.type) === 0) {
@@ -269,6 +273,7 @@ class Simulator {
       DEFAULT_MAXIMUM_CPU_TASK_DURATION
     );
     const estimatedTimeElapsed = totalDuration - timingData.timeElapsed;
+    console.log(new Date(), '_estimateCPUTimeRemaining', { cpuNode,  timingData, multiplier, totalDuration, estimatedTimeElapsed });
     this._nodeTimings.setCpuEstimated(cpuNode, {estimatedTimeElapsed});
     return estimatedTimeElapsed;
   }
@@ -288,6 +293,7 @@ class Simulator {
       // @see http://norvig.com/21-days.html#answers
       const sizeInMb = (record.resourceSize || 0) / 1024 / 1024;
       timeElapsed = 8 + 20 * sizeInMb - timingData.timeElapsed;
+      console.log(new Date(), '_estimateNetworkTimeRemaining fromDiskCache case', { networkNode, timingData, sizeInMb, timeElapsed });
     } else if (networkNode.isNonNetworkProtocol) {
       // Estimates for the overhead of a data URL in Chromium and the decoding time for base64-encoded data.
       // 2ms per request + 10ms/MB
@@ -307,9 +313,11 @@ class Simulator {
       );
 
       timeElapsed = calculation.timeElapsed;
+      console.log(new Date(), '_estimateNetworkTimeRemaining network hit', { networkNode, dnsResolutionTime, timeAlreadyElapsed, calculation, timeElapsed });
     }
 
     const estimatedTimeElapsed = timeElapsed + timingData.timeElapsedOvershoot;
+    console.log(new Date(), '_estimateNetworkTimeRemaining final', { estimatedTimeElapsed });
     this._nodeTimings.setNetworkEstimated(networkNode, {estimatedTimeElapsed});
     return estimatedTimeElapsed;
   }
@@ -334,6 +342,7 @@ class Simulator {
    * @param {number} totalElapsedTime
    */
   _updateProgressMadeInTimePeriod(node, timePeriodLength, totalElapsedTime) {
+    console.log(new Date(), 'updating progress made in time period', { node, timePeriodLength, totalElapsedTime });
     const timingData = this._nodeTimings.getInProgress(node);
     const isFinished = timingData.estimatedTimeElapsed === timePeriodLength;
 
@@ -425,6 +434,7 @@ class Simulator {
       flexibleOrdering: false,
     }, options);
 
+    console.log(new Date(), { graph, options });
     // initialize the necessary data containers
     this._flexibleOrdering = !!options.flexibleOrdering;
     this._dns = new DNSCache({rtt: this._rtt});
