@@ -150,7 +150,7 @@ export class DOM {
   /**
    * Set link href, but safely, preventing `javascript:` protocol, etc.
    * @see https://github.com/google/safevalues/
-   * @param {Element} elem
+   * @param {HTMLAnchorElement} elem
    * @param {string} url
    */
   safelySetHref(elem, url) {
@@ -173,7 +173,7 @@ export class DOM {
 
   /**
    * Only create blob URLs for JSON & HTML
-   * @param {Element} elem
+   * @param {HTMLAnchorElement} elem
    * @param {Blob} blob
    */
   safelySetBlobHref(elem, blob) {
