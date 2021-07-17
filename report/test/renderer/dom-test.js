@@ -36,15 +36,6 @@ describe('DOM', () => {
       assert.equal(el.className, '');
       assert.equal(el.hasAttributes(), false);
     });
-
-    it('creates an element from parameters', () => {
-      const el = dom.createElement(
-          'div', 'class1 class2', {title: 'title attr', tabindex: 0});
-      assert.equal(el.localName, 'div');
-      assert.equal(el.className, 'class1 class2');
-      assert.equal(el.getAttribute('title'), 'title attr');
-      assert.equal(el.getAttribute('tabindex'), '0');
-    });
   });
 
   describe('cloneTemplate', () => {
