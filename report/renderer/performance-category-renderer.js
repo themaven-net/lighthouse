@@ -194,7 +194,7 @@ export class PerformanceCategoryRenderer extends CategoryRenderer {
     const calculatorLink = this.dom.createChildOf(estValuesEl, 'a', 'lh-calclink');
     calculatorLink.target = '_blank';
     calculatorLink.textContent = strings.calculatorLink;
-    calculatorLink.href = this._getScoringCalculatorHref(category.auditRefs);
+    this.dom.safelySetHref(calculatorLink, this._getScoringCalculatorHref(category.auditRefs));
 
 
     metricAuditsEl.classList.add('lh-audit-group--metrics');

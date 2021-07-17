@@ -161,11 +161,48 @@ export class DOM {
       a.rel = 'noopener';
       a.target = '_blank';
       a.textContent = segment.text;
-      a.href = url.href;
+      this.safelySetHref(a, url.href);
       element.appendChild(a);
     }
 
     return element;
+  }
+
+  /**
+   * Set link href, but safely, preventing `javascript:` protocol, etc.
+   * @see https://github.com/google/safevalues/
+   * @param {Element} elem
+   * @param {string} url
+   */
+  safelySetHref(elem, url) {
+    // In-page anchor links are safe.
+    if (url.startsWith('#')) {
+      elem.href = url;
+      return;
+    }
+
+    const allowedProtocols = ['https:', 'http:'];
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (_) {}
+
+    if (parsed && allowedProtocols.includes(parsed.protocol)) {
+      elem.href = parsed.href;
+    }
+  }
+
+  /**
+   * Only create blob URLs for JSON & HTML
+   * @param {Element} elem
+   * @param {Blob} blob
+   */
+  safelySetBlobHref(elem, blob) {
+    if (blob.type !== 'text/html' && blob.type !== 'application/json') {
+      throw new Error('Unsupported blob type');
+    }
+    const href = URL.createObjectURL(blob);
+    elem.href = href;
   }
 
   /**
