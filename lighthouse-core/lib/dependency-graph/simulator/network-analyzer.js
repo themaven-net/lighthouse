@@ -123,7 +123,7 @@ class NetworkAnalyzer {
   static _estimateRTTByOriginViaTCPTiming(records) {
     return NetworkAnalyzer._estimateValueByOrigin(records, ({timing, connectionReused}) => {
       if (connectionReused) return;
-
+      console.log(new Date(), '_estimateRTTByOriginViaTCPTiming', { timing });
       // If the request was SSL we get two estimates, one for the SSL negotiation and another for the
       // regular handshake. SSL can also be more than 1 RT but assume False Start was used.
       if (timing.sslStart > 0 && timing.sslEnd > 0) {
@@ -234,6 +234,7 @@ class NetworkAnalyzer {
       const ttfb = timing.receiveHeadersEnd - timing.sendEnd;
       const origin = record.parsedURL.securityOrigin;
       const rtt = rttByOrigin.get(origin) || rttByOrigin.get(NetworkAnalyzer.SUMMARY) || 0;
+      console.log(new Date(), '_estimateResponseTimeByOrigin', { origin, ttfb, rtt });
       return Math.max(ttfb - rtt, 0);
     });
   }
@@ -317,6 +318,7 @@ class NetworkAnalyzer {
     } = options || {};
 
     let estimatesByOrigin = NetworkAnalyzer._estimateRTTByOriginViaTCPTiming(records);
+    console.log(new Date(), 'estimateRTTByOrigin', { options, estimatesByOrigin });
     if (!estimatesByOrigin.size || forceCoarseEstimates) {
       estimatesByOrigin = new Map();
       const estimatesViaDownload = NetworkAnalyzer._estimateRTTByOriginViaDownloadTiming(records);
@@ -343,6 +345,7 @@ class NetworkAnalyzer {
       for (const estimates of estimatesByOrigin.values()) {
         estimates.forEach((x, i) => (estimates[i] = x * coarseEstimateMultiplier));
       }
+      console.log(new Date(), 'estimateRTTByOrigin', { options, estimatesByOrigin, estimatesViaDownload, estimatesViaSendStart, estimatesViaTTFB });
     }
 
     if (!estimatesByOrigin.size) throw new Error('No timing information available');

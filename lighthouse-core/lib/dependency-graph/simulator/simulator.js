@@ -273,7 +273,7 @@ class Simulator {
       DEFAULT_MAXIMUM_CPU_TASK_DURATION
     );
     const estimatedTimeElapsed = totalDuration - timingData.timeElapsed;
-    console.log(new Date(), '_estimateCPUTimeRemaining', { cpuNode,  timingData, multiplier, totalDuration, estimatedTimeElapsed });
+    console.log(new Date(), '_estimateCPUTimeRemaining', { cpuNode,  timingData, multiplier, totalDuration, estimatedTimeElapsed, layoutTaskMultiplier: this._layoutTaskMultiplier,  cpuSlowdownMultiplier: this._cpuSlowdownMultiplier});
     this._nodeTimings.setCpuEstimated(cpuNode, {estimatedTimeElapsed});
     return estimatedTimeElapsed;
   }
