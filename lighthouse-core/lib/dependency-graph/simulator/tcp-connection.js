@@ -47,6 +47,7 @@ class TcpConnection {
     const bytesPerSecond = this._throughput / 8;
     const secondsPerRoundTrip = this._rtt / 1000;
     const bytesPerRoundTrip = bytesPerSecond * secondsPerRoundTrip;
+    console.log(new Date(), '_computeMaximumCongestionWindowInSegments', { bytesPerSecond, secondsPerRoundTrip, bytesPerRoundTrip, TCP_SEGMENT_SIZE });
     return Math.floor(bytesPerRoundTrip / TCP_SEGMENT_SIZE);
   }
 
