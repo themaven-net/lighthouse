@@ -4,7 +4,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {strict as assert} from 'assert';
+import assert from 'assert/strict';
 
 import {ByteEfficiencyAudit as ByteEfficiencyAudit_} from '../../../audits/byte-efficiency/byte-efficiency-audit.js';
 import {NetworkNode} from '../../../lib/dependency-graph/network-node.js';
@@ -137,6 +137,17 @@ describe('Byte efficiency base audit', () => {
     assert.ok(failingResult.score < 0.5, 'scores failing wastedMs');
   });
 
+  it('should score negative wastedMs as perfect', () => {
+    const negativeResult = ByteEfficiencyAudit.createAuditProduct({
+      headings: baseHeadings,
+      items: [{url: 'http://example.com/', wastedBytes: -1 * 1000}],
+    }, graph, simulator, {gatherMode: 'timespan'});
+
+    assert.equal(negativeResult.score, 1);
+    assert.ok(negativeResult.numericValue < 0);
+    assert.equal(negativeResult.numericValue, negativeResult.details.overallSavingsMs);
+  });
+
   it('should throw on invalid graph', () => {
     assert.throws(() => {
       ByteEfficiencyAudit.createAuditProduct({
@@ -244,7 +255,7 @@ describe('Byte efficiency base audit', () => {
     let result = await MockAudit.audit(artifacts, {settings, computedCache});
     // expect modest savings
     expect(result.numericValue).toBeLessThan(5000);
-    expect(result.numericValue).toMatchInlineSnapshot(`960`);
+    expect(result.numericValue).toMatchInlineSnapshot(`730`);
 
     settings = {throttlingMethod: 'simulate', throttling: ultraSlowThrottling};
     result = await MockAudit.audit(artifacts, {settings, computedCache});
@@ -283,8 +294,8 @@ describe('Byte efficiency base audit', () => {
     const result = await MockAudit.audit(artifacts, {settings, computedCache});
     const resultTti = await MockTtiAudit.audit(artifacts, {settings, computedCache});
     expect(resultTti.numericValue).toBeLessThan(result.numericValue);
-    expect(result.numericValue).toMatchInlineSnapshot(`2120`);
-    expect(resultTti.numericValue).toMatchInlineSnapshot(`150`);
+    expect(result.numericValue).toMatchInlineSnapshot(`2280`);
+    expect(resultTti.numericValue).toMatchInlineSnapshot(`110`);
   });
 
   it('should allow overriding of computeWasteWithTTIGraph', async () => {
@@ -356,6 +367,7 @@ describe('Byte efficiency base audit', () => {
       GatherContext: {gatherMode: 'timespan'},
       traces: {defaultPass: trace},
       devtoolsLogs: {defaultPass: []},
+      URL: {},
     };
     const computedCache = new Map();
 
@@ -396,5 +408,20 @@ describe('Byte efficiency base audit', () => {
     const settings = {throttlingMethod: 'devtools', throttling: modestThrottling};
     const result = await MockAudit.audit(artifacts, {settings, computedCache});
     expect(result.details.overallSavingsMs).toBeCloseTo(575, 1);
+  });
+
+  describe('#scoreForWastedMs', () => {
+    it('scores wastedMs values', () => {
+      expect(ByteEfficiencyAudit.scoreForWastedMs(-50)).toBe(1);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(0)).toBe(1);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(240)).toBe(0.8);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(300)).toBe(0.75);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(390)).toBe(0.7);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(750)).toBe(0.5);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(1_175)).toBe(0.45);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(5_000)).toBe(0);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(10_000)).toBe(0);
+      expect(ByteEfficiencyAudit.scoreForWastedMs(Number.MAX_VALUE)).toBe(0);
+    });
   });
 });

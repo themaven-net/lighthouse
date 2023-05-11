@@ -6,7 +6,7 @@
 
 import jestMock from 'jest-mock';
 
-import * as lighthouse from '../../api.js';
+import * as api from '../../index.js';
 import {createTestState, getAuditsBreakdown} from './pptr-test-utils.js';
 import {LH_ROOT} from '../../../root.js';
 
@@ -36,14 +36,13 @@ describe('Fraggle Rock API', function() {
     it('should compute accessibility results on the page as-is', async () => {
       await setupTestPage();
 
-      const result = await lighthouse.snapshot({page: state.page});
+      const result = await api.snapshot(state.page);
       if (!result) throw new Error('Lighthouse failed to produce a result');
 
       const {lhr, artifacts} = result;
       const url = `${state.serverBaseUrl}/onclick.html#done`;
       expect(artifacts.URL).toEqual({
-        initialUrl: url,
-        finalUrl: url,
+        finalDisplayedUrl: url,
       });
 
       const accessibility = lhr.categories.accessibility;
@@ -64,7 +63,7 @@ describe('Fraggle Rock API', function() {
     });
 
     it('should compute ConsoleMessage results across a span of time', async () => {
-      const run = await lighthouse.startTimespan({page: state.page});
+      const run = await api.startTimespan(state.page);
 
       await setupTestPage();
 
@@ -76,8 +75,7 @@ describe('Fraggle Rock API', function() {
 
       const {lhr, artifacts} = result;
       expect(artifacts.URL).toEqual({
-        initialUrl: 'about:blank',
-        finalUrl: `${state.serverBaseUrl}/onclick.html#done`,
+        finalDisplayedUrl: `${state.serverBaseUrl}/onclick.html#done`,
       });
 
       const bestPractices = lhr.categories['best-practices'];
@@ -119,11 +117,10 @@ describe('Fraggle Rock API', function() {
 
     it('should compute results from timespan after page load', async () => {
       const {page, serverBaseUrl} = state;
-      const initialUrl = `${serverBaseUrl}/onclick.html`;
-      await page.goto(initialUrl);
+      await page.goto(`${serverBaseUrl}/onclick.html`);
       await page.waitForSelector('button');
 
-      const run = await lighthouse.startTimespan({page});
+      const run = await api.startTimespan(state.page);
 
       await page.click('button');
       await page.waitForSelector('input');
@@ -136,8 +133,7 @@ describe('Fraggle Rock API', function() {
       if (!result) throw new Error('Lighthouse failed to produce a result');
 
       expect(result.artifacts.URL).toEqual({
-        initialUrl,
-        finalUrl: `${initialUrl}#done`,
+        finalDisplayedUrl: `${serverBaseUrl}/onclick.html#done`,
       });
 
       const {auditResults, erroredAudits, notApplicableAudits} = getAuditsBreakdown(result.lhr);
@@ -147,6 +143,55 @@ describe('Fraggle Rock API', function() {
       expect(notApplicableAudits.map(audit => audit.id)).not.toContain('total-blocking-time');
 
       expect(erroredAudits).toHaveLength(0);
+    });
+
+    // eslint-disable-next-line max-len
+    it('should know target type of network requests from frames created before timespan', async () => {
+      state.server.baseDir = `${LH_ROOT}/cli/test/fixtures`;
+      const {page, serverBaseUrl} = state;
+
+      await page.goto(`${serverBaseUrl}/oopif-scripts-timespan.html`);
+
+      const run = await api.startTimespan(state.page);
+      for (const iframe of page.frames()) {
+        if (iframe.url().includes('/oopif-simple-page.html')) {
+          iframe.click('button');
+        }
+      }
+      await page.waitForNetworkIdle().catch(() => {});
+      const result = await run.endTimespan();
+
+      if (!result) throw new Error('Lighthouse failed to produce a result');
+
+      const networkRequestsDetails = /** @type {LH.Audit.Details.Table} */ (
+        result.lhr.audits['network-requests'].details);
+      const networkRequests = networkRequestsDetails?.items
+        .map((r) => ({url: r.url, sessionTargetType: r.sessionTargetType}))
+        // @ts-expect-error
+        .sort((a, b) => a.url.localeCompare(b.url));
+      expect(networkRequests).toHaveLength(4);
+      expect(networkRequests.filter(r => r.sessionTargetType === 'page')).toHaveLength(2);
+      expect(networkRequests.filter(r => r.sessionTargetType === 'iframe')).toHaveLength(2);
+      expect(networkRequests).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "sessionTargetType": "page",
+    "url": "http://localhost:10200/simple-script.js",
+  },
+  Object {
+    "sessionTargetType": "page",
+    "url": "http://localhost:10200/simple-worker.js",
+  },
+  Object {
+    "sessionTargetType": "iframe",
+    "url": "http://localhost:10503/simple-script.js",
+  },
+  Object {
+    "sessionTargetType": "iframe",
+    "url": "http://localhost:10503/simple-worker.js",
+  },
+]
+`);
     });
   });
 
@@ -159,15 +204,14 @@ describe('Fraggle Rock API', function() {
     it('should compute both snapshot & timespan results', async () => {
       const {page, serverBaseUrl} = state;
       const url = `${serverBaseUrl}/index.html`;
-      const result = await lighthouse.navigation(url, {page});
+      const result = await api.navigation(page, url);
       if (!result) throw new Error('Lighthouse failed to produce a result');
 
       const {lhr, artifacts} = result;
       expect(artifacts.URL).toEqual({
-        initialUrl: 'about:blank',
         requestedUrl: url,
         mainDocumentUrl: url,
-        finalUrl: url,
+        finalDisplayedUrl: url,
       });
 
       const {auditResults, failedAudits, erroredAudits} = getAuditsBreakdown(lhr);
@@ -191,28 +235,26 @@ describe('Fraggle Rock API', function() {
 
     it('should compute results with callback requestor', async () => {
       const {page, serverBaseUrl} = state;
-      const initialUrl = `${serverBaseUrl}/links-to-index.html`;
       const requestedUrl = `${serverBaseUrl}/?redirect=/index.html`;
       const mainDocumentUrl = `${serverBaseUrl}/index.html`;
-      await page.goto(initialUrl);
+      await page.goto(`${serverBaseUrl}/links-to-index.html`);
 
       const requestor = jestMock.fn(async () => {
         await page.click('a');
       });
 
-      const result = await lighthouse.navigation(requestor, {page});
+      const result = await api.navigation(page, requestor);
       if (!result) throw new Error('Lighthouse failed to produce a result');
 
       expect(requestor).toHaveBeenCalled();
 
       const {lhr, artifacts} = result;
       expect(lhr.requestedUrl).toEqual(requestedUrl);
-      expect(lhr.finalUrl).toEqual(mainDocumentUrl);
+      expect(lhr.finalDisplayedUrl).toEqual(mainDocumentUrl);
       expect(artifacts.URL).toEqual({
-        initialUrl,
         requestedUrl,
         mainDocumentUrl,
-        finalUrl: mainDocumentUrl,
+        finalDisplayedUrl: mainDocumentUrl,
       });
 
       const {auditResults, failedAudits, erroredAudits} = getAuditsBreakdown(lhr);

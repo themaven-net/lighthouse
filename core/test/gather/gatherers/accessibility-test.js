@@ -5,7 +5,7 @@
  */
 
 import fs from 'fs';
-import {strict as assert} from 'assert';
+import assert from 'assert/strict';
 
 import puppeteer from 'puppeteer';
 
@@ -23,7 +23,7 @@ describe('Accessibility gatherer', () => {
 
   it('propagates error retrieving the results', () => {
     const error = 'There was an error.';
-    return accessibilityGather.afterPass({
+    return accessibilityGather.getArtifact({
       driver: {
         executionContext: {
           async evaluate() {

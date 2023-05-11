@@ -4,7 +4,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {strict as assert} from 'assert';
+import assert from 'assert/strict';
 
 import UrlUtils from '../../lib/url-utils.js';
 
@@ -332,6 +332,7 @@ describe('UrlUtils', () => {
     assert.ok(UrlUtils.isNonNetworkProtocol('file:'));
     assert.ok(UrlUtils.isNonNetworkProtocol('filesystem:'));
     assert.ok(UrlUtils.isNonNetworkProtocol('filesystem'));
+    assert.ok(UrlUtils.isNonNetworkProtocol('chrome-extension'));
 
     assert.ok(!UrlUtils.isNonNetworkProtocol('https:'));
     assert.ok(!UrlUtils.isNonNetworkProtocol('http'));

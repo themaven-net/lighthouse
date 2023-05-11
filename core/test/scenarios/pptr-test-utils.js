@@ -5,7 +5,7 @@
  */
 
 import {before, beforeEach, after, afterEach} from 'mocha';
-import puppeteer from 'puppeteer-core';
+import * as puppeteer from 'puppeteer-core';
 import {getChromePath} from 'chrome-launcher';
 
 import {Server} from '../../../cli/test/fixtures/static-server.js';
@@ -29,8 +29,8 @@ function createTestState() {
   }});
 
   return {
-    browser: /** @type {LH.Puppeteer.Browser} */ (any('browser')),
-    page: /** @type {LH.Puppeteer.Page} */ (any('page')),
+    browser: /** @type {puppeteer.Browser} */ (any('browser')),
+    page: /** @type {puppeteer.Page} */ (any('page')),
     server: /** @type {StaticServer} */ (any('server')),
     secondaryServer: /** @type {StaticServer} */ (any('server')),
     serverBaseUrl: '',
@@ -40,7 +40,7 @@ function createTestState() {
      * @param {number=} port
      * @param {number=} secondaryPort
      */
-    installServerHooks(port = 0, secondaryPort = 0) {
+    installServerHooks(port = 10200, secondaryPort = 10503) {
       before(async () => {
         this.server = new Server(port);
         this.secondaryServer = new Server(secondaryPort);

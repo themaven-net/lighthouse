@@ -58,15 +58,22 @@ class TargetManager extends ProtocolEventEmitter {
   async _onFrameNavigated(frameNavigatedEvent) {
     // Child frames are handled in `_onSessionAttached`.
     if (frameNavigatedEvent.frame.parentId) return;
+    if (!this._enabled) return;
 
     // It's not entirely clear when this is necessary, but when the page switches processes on
     // navigating from about:blank to the `requestedUrl`, resetting `setAutoAttach` has been
     // necessary in the past.
-    await this._rootCdpSession.send('Target.setAutoAttach', {
-      autoAttach: true,
-      flatten: true,
-      waitForDebuggerOnStart: true,
-    });
+    try {
+      await this._rootCdpSession.send('Target.setAutoAttach', {
+        autoAttach: true,
+        flatten: true,
+        waitForDebuggerOnStart: true,
+      });
+    } catch (err) {
+      // The page can be closed at the end of the run before this CDP function returns.
+      // In these cases, just ignore the error since we won't need the page anyway.
+      if (this._enabled) throw err;
+    }
   }
 
   /**
@@ -112,11 +119,12 @@ class TargetManager extends ProtocolEventEmitter {
       const targetName = target.targetInfo.url || target.targetInfo.targetId;
       log.verbose('target-manager', `target ${targetName} attached`);
 
-      const trueProtocolListener = this._getProtocolEventListener(newSession.id());
+      const trueProtocolListener = this._getProtocolEventListener(targetType, newSession.id());
       /** @type {(event: unknown) => void} */
       // @ts-expect-error - pptr currently typed only for single arg emits.
       const protocolListener = trueProtocolListener;
       cdpSession.on('*', protocolListener);
+      cdpSession.on('sessionattached', this._onSessionAttached);
 
       const targetWithSession = {
         target: target.targetInfo,
@@ -148,9 +156,10 @@ class TargetManager extends ProtocolEventEmitter {
   /**
    * Returns a listener for all protocol events from session, and augments the
    * event with the sessionId.
+   * @param {LH.Protocol.TargetType} targetType
    * @param {string} sessionId
    */
-  _getProtocolEventListener(sessionId) {
+  _getProtocolEventListener(targetType, sessionId) {
     /**
      * @template {keyof LH.Protocol.RawEventMessageRecord} EventName
      * @param {EventName} method
@@ -158,7 +167,8 @@ class TargetManager extends ProtocolEventEmitter {
      */
     const onProtocolEvent = (method, params) => {
       // Cast because tsc 4.7 still can't quite track the dependent parameters.
-      const payload = /** @type {LH.Protocol.RawEventMessage} */ ({method, params, sessionId});
+      const payload = /** @type {LH.Protocol.RawEventMessage} */ (
+        {method, params, targetType, sessionId});
       this.emit('protocolevent', payload);
     };
 
@@ -176,12 +186,6 @@ class TargetManager extends ProtocolEventEmitter {
 
     this._rootCdpSession.on('Page.frameNavigated', this._onFrameNavigated);
 
-    const rootConnection = this._rootCdpSession.connection();
-    if (!rootConnection) {
-      throw new Error('Connection has been closed.');
-    }
-    rootConnection.on('sessionattached', this._onSessionAttached);
-
     await this._rootCdpSession.send('Page.enable');
 
     // Start with the already attached root session.
@@ -193,11 +197,10 @@ class TargetManager extends ProtocolEventEmitter {
    */
   async disable() {
     this._rootCdpSession.off('Page.frameNavigated', this._onFrameNavigated);
-    // No need to remove listener if connection is already closed.
-    this._rootCdpSession.connection()?.off('sessionattached', this._onSessionAttached);
 
     for (const {cdpSession, protocolListener} of this._targetIdToTargets.values()) {
       cdpSession.off('*', protocolListener);
+      cdpSession.off('sessionattached', this._onSessionAttached);
     }
 
     this._enabled = false;

@@ -4,22 +4,16 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
+import {NetworkRequest} from '../../../../lib/network-request.js';
 import {createMockContext, mockDriverSubmodules} from '../../../gather/mock-driver.js';
-// import ResponseCompression from '../../../../gather/gatherers/dobetterweb/response-compression.js';
-
-// Some imports needs to be done dynamically, so that their dependencies will be mocked.
-// See: https://jestjs.io/docs/ecmascript-modules#differences-between-esm-and-commonjs
-//      https://github.com/facebook/jest/issues/10025
-/** @typedef {import('../../../../gather/gatherers/dobetterweb/response-compression.js')} ResponseCompression */
-/** @type {typeof import('../../../../gather/gatherers/dobetterweb/response-compression.js')} */
-let ResponseCompression;
-
-before(async () => {
-  ResponseCompression =
-    (await import('../../../../gather/gatherers/dobetterweb/response-compression.js')).default;
-});
 
 const mocks = await mockDriverSubmodules();
+
+// Some imports needs to be done dynamically, so that their dependencies will be mocked.
+// https://github.com/GoogleChrome/lighthouse/blob/main/docs/hacking-tips.md#mocking-modules-with-testdouble
+/** @typedef {import('../../../../gather/gatherers/dobetterweb/response-compression.js')} ResponseCompression */
+const ResponseCompression =
+  (await import('../../../../gather/gatherers/dobetterweb/response-compression.js')).default;
 
 const networkRecords = [
   {
@@ -62,7 +56,7 @@ const networkRecords = [
     finished: true,
   },
   {
-    url: 'http://google.com/index.json',
+    url: 'http://google.com/index-oopif.json',
     statusCode: 200,
     mimeType: 'application/json',
     requestId: 27,
@@ -72,7 +66,7 @@ const networkRecords = [
     responseHeaders: [],
     content: '1234567',
     finished: true,
-    sessionId: 'oopif', // ignore for being from oopif
+    sessionTargetType: 'iframe', // ignore for being from oopif
   },
   {
     url: 'http://google.com/index.json',
@@ -122,7 +116,7 @@ const networkRecords = [
     content: 'bbbbbbbb',
     finished: true,
   },
-];
+].map((record) => Object.assign(new NetworkRequest(), record));
 
 describe('Optimized responses', () => {
   let context;

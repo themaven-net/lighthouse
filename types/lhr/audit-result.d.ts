@@ -4,8 +4,8 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {FormattedIcu} from './i18n';
-import AuditDetails from './audit-details';
+import {FormattedIcu} from './i18n.js';
+import AuditDetails from './audit-details.js';
 
 interface ScoreDisplayModes {
   /** Scores of 0-1 (map to displayed scores of 0-100). */
@@ -50,6 +50,8 @@ export interface Result {
   id: string;
   /** A more detailed description that describes why the audit is important and links to Lighthouse documentation on the audit; markdown links supported. */
   description: string;
+  /** Estimates of how much this audit affects various performance metrics. Values will be in the unit of the respective metrics. */
+  metricSavings?: AuditDetails.MetricSavings;
   /** A numeric value that has a meaning specific to the audit, e.g. the number of nodes in the DOM or the timestamp of a specific load event. More information can be found in the audit details, if present. */
   numericValue?: number;
   /** The unit of `numericValue`, used when the consumer wishes to convert numericValue to a display string. */

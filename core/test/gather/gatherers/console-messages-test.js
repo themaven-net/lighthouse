@@ -4,7 +4,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {strict as assert} from 'assert';
+import assert from 'assert/strict';
 
 import ConsoleMessagesGatherer from '../../../gather/gatherers/console-messages.js';
 
@@ -62,10 +62,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.exceptionThrown', runtimeEx);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 1);
     assert.equal(artifact[0].source, 'exception');
@@ -104,10 +105,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.consoleAPICalled', consoleWarnEvent);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 1);
     assert.equal(artifact[0].source, 'console.warn');
@@ -136,10 +138,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.consoleAPICalled', consoleWarnEvent);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 1);
     assert.equal(artifact[0].source, 'console.warn');
@@ -260,10 +263,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.consoleAPICalled', consoleWarnEvent);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 1);
     assert.equal(artifact[0].source, 'console.warn');
@@ -318,10 +322,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.consoleAPICalled', consoleErrorEvent);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 1);
     assert.equal(artifact[0].source, 'console.error');
@@ -358,10 +363,11 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Runtime.consoleAPICalled', consoleLog);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 0);
   });
@@ -406,11 +412,12 @@ describe('ConsoleMessages', () => {
     const driver = new MockDriver();
     const options = {driver};
 
-    await consoleGatherer.beforePass(options);
+    await consoleGatherer.startInstrumentation(options);
     driver.defaultSession.fireForTest('Log.entryAdded', logEntries[0]);
     driver.defaultSession.fireForTest('Log.entryAdded', logEntries[1]);
 
-    const artifact = await consoleGatherer.afterPass(options);
+    await consoleGatherer.stopInstrumentation(options);
+    const artifact = await consoleGatherer.getArtifact(options);
 
     assert.equal(artifact.length, 2);
 

@@ -11,25 +11,17 @@ import {
   flushAllTimersAndMicrotasks,
   timers,
 } from '../../test-utils.js';
-// import {gotoURL, getNavigationWarnings} from '../../../gather/driver/navigation.js';
 
 const {createMockOnceFn} = mockCommands;
 
 // Some imports needs to be done dynamically, so that their dependencies will be mocked.
-// See: https://jestjs.io/docs/ecmascript-modules#differences-between-esm-and-commonjs
-//      https://github.com/facebook/jest/issues/10025
-/** @type {import('../../../gather/driver/navigation.js')['gotoURL']} */
-let gotoURL;
-/** @type {import('../../../gather/driver/navigation.js')['getNavigationWarnings']} */
-let getNavigationWarnings;
-
-before(async () => {
-  ({gotoURL, getNavigationWarnings} = (await import('../../../gather/driver/navigation.js')));
-});
-
-timers.useFakeTimers();
+// https://github.com/GoogleChrome/lighthouse/blob/main/docs/hacking-tips.md#mocking-modules-with-testdouble
+const {gotoURL, getNavigationWarnings} = await import('../../../gather/driver/navigation.js');
 
 describe('.gotoURL', () => {
+  before(() => timers.useFakeTimers());
+  after(() => timers.dispose());
+
   /** @type {LH.Gatherer.FRTransitionalDriver} */
   let driver;
   /** @type {ReturnType<typeof createMockDriver>} */
@@ -45,8 +37,7 @@ describe('.gotoURL', () => {
       .mockResponse('Page.enable') // gotoURL's Page.enable
       .mockResponse('Page.setLifecycleEventsEnabled')
       .mockResponse('Page.navigate')
-      .mockResponse('Runtime.evaluate')
-      .mockResponse('Page.getResourceTree', {frameTree: {frame: {id: 'ABC'}}});
+      .mockResponse('Runtime.evaluate');
   });
 
   it('will track redirects through gotoURL load with warning', async () => {
@@ -79,10 +70,10 @@ describe('.gotoURL', () => {
     navigate({...baseFrame, url: 'https://example.com'});
     navigate({...baseFrame, url: 'https://www.example.com'});
     navigate({...baseFrame, url: 'https://m.example.com'});
-    navigate({...baseFrame, id: 'ad1', url: 'https://frame-a.example.com'});
+    navigate({...baseFrame, id: 'ad1', url: 'https://frame-a.example.com', parentId: 'ABC'});
     navigate({...baseFrame, url: 'https://m.example.com/client'});
-    navigate({...baseFrame, id: 'ad2', url: 'https://frame-b.example.com'});
-    navigate({...baseFrame, id: 'ad3', url: 'https://frame-c.example.com'});
+    navigate({...baseFrame, id: 'ad2', url: 'https://frame-b.example.com', parentId: 'ABC'});
+    navigate({...baseFrame, id: 'ad3', url: 'https://frame-c.example.com', parentId: 'ABC'});
 
     loadListener(baseFrame);
     await flushAllTimersAndMicrotasks();

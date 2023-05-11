@@ -5,21 +5,14 @@
  */
 
 import {createMockContext, mockDriverSubmodules} from '../mock-driver.js';
-// import ScriptElements from '../../../gather/gatherers/script-elements.js';
-import {NetworkRequest} from '../../../lib/network-request.js';
-
-// Some imports needs to be done dynamically, so that their dependencies will be mocked.
-// See: https://jestjs.io/docs/ecmascript-modules#differences-between-esm-and-commonjs
-//      https://github.com/facebook/jest/issues/10025
-/** @typedef {import('../../../gather/gatherers/script-elements.js').default} ScriptElements */
-/** @type {typeof import('../../../gather/gatherers/script-elements.js').default} */
-let ScriptElements;
-
-before(async () => {
-  ScriptElements = (await import('../../../gather/gatherers/script-elements.js')).default;
-});
 
 const mocks = await mockDriverSubmodules();
+
+// Some imports needs to be done dynamically, so that their dependencies will be mocked.
+// https://github.com/GoogleChrome/lighthouse/blob/main/docs/hacking-tips.md#mocking-modules-with-testdouble
+/** @typedef {import('../../../gather/gatherers/script-elements.js').default} ScriptElements */
+const ScriptElements = (await import('../../../gather/gatherers/script-elements.js')).default;
+const {NetworkRequest} = await import('../../../lib/network-request.js');
 
 /**
  * @param {Partial<LH.Artifacts.NetworkRequest>=} partial
@@ -91,7 +84,7 @@ describe('_getArtifact', () => {
     networkRecords = [
       mainDocument,
       mockRecord({url: 'https://example.com/script.js', requestId: '1'}),
-      mockRecord({url: 'https://oopif.com/script.js', requestId: '2', sessionId: 'OOPIF'}),
+      mockRecord({url: 'https://oopif.com/script.js', requestId: '2', sessionTargetType: 'iframe'}),
     ];
     // OOPIF would not produce script element
     scriptElements = [

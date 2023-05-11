@@ -9,27 +9,27 @@ import log from 'lighthouse-logger';
 import {Driver} from './driver.js';
 import {Runner} from '../runner.js';
 import {getEmptyArtifactState, collectPhaseArtifacts, awaitArtifacts} from './runner-helpers.js';
-import {prepareTargetForTimespanMode} from './driver/prepare.js';
+import {enableAsyncStacks, prepareTargetForTimespanMode} from './driver/prepare.js';
 import {initializeConfig} from '../config/config.js';
 import {getBaseArtifacts, finalizeArtifacts} from './base-artifacts.js';
 
 /**
- * @param {{page: LH.Puppeteer.Page, config?: LH.Config.Json, flags?: LH.Flags}} options
+ * @param {LH.Puppeteer.Page} page
+ * @param {{config?: LH.Config, flags?: LH.Flags}} [options]
  * @return {Promise<{endTimespanGather(): Promise<LH.Gatherer.FRGatherResult>}>}
  */
-async function startTimespanGather(options) {
-  const {page, flags = {}} = options;
+async function startTimespanGather(page, options = {}) {
+  const {flags = {}, config} = options;
   log.setLevel(flags.logLevel || 'error');
 
-  const {config} = await initializeConfig('timespan', options.config, flags);
+  const {resolvedConfig} = await initializeConfig('timespan', config, flags);
   const driver = new Driver(page);
   await driver.connect();
 
   /** @type {Map<string, LH.ArbitraryEqualityMap>} */
   const computedCache = new Map();
-  const artifactDefinitions = config.artifacts || [];
-  const initialUrl = await driver.url();
-  const baseArtifacts = await getBaseArtifacts(config, driver, {gatherMode: 'timespan'});
+  const artifactDefinitions = resolvedConfig.artifacts || [];
+  const baseArtifacts = await getBaseArtifacts(resolvedConfig, driver, {gatherMode: 'timespan'});
   const artifactState = getEmptyArtifactState();
   /** @type {Omit<import('./runner-helpers.js').CollectPhaseArtifactOptions, 'phase'>} */
   const phaseOptions = {
@@ -40,27 +40,33 @@ async function startTimespanGather(options) {
     baseArtifacts,
     computedCache,
     gatherMode: 'timespan',
-    settings: config.settings,
+    settings: resolvedConfig.settings,
   };
 
-  await prepareTargetForTimespanMode(driver, config.settings);
+  await prepareTargetForTimespanMode(driver, resolvedConfig.settings);
+
+  const disableAsyncStacks = await enableAsyncStacks(driver.defaultSession);
+
   await collectPhaseArtifacts({phase: 'startInstrumentation', ...phaseOptions});
   await collectPhaseArtifacts({phase: 'startSensitiveInstrumentation', ...phaseOptions});
 
   return {
     async endTimespanGather() {
-      const finalUrl = await driver.url();
+      const finalDisplayedUrl = await driver.url();
 
-      const runnerOptions = {config, computedCache};
+      const runnerOptions = {resolvedConfig, computedCache};
       const artifacts = await Runner.gather(
         async () => {
-          baseArtifacts.URL = {
-            initialUrl,
-            finalUrl,
-          };
+          baseArtifacts.URL = {finalDisplayedUrl};
 
           await collectPhaseArtifacts({phase: 'stopSensitiveInstrumentation', ...phaseOptions});
           await collectPhaseArtifacts({phase: 'stopInstrumentation', ...phaseOptions});
+
+          // bf-cache-failures can emit `Page.frameNavigated` at the end of the run.
+          // This can cause us to issue protocol commands after the target closes.
+          // We should disable our `Page.frameNavigated` handlers before that.
+          await disableAsyncStacks();
+
           await collectPhaseArtifacts({phase: 'getArtifact', ...phaseOptions});
           await driver.disconnect();
 
